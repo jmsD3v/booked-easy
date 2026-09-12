@@ -1,1 +1,3 @@
-project_id = "kzyjrkentsasnjijtirz"
+# Sin proyecto vinculado — el project_id original apuntaba al Supabase que
+# Lovable provisionó automáticamente, que no está bajo esta cuenta.
+# Al crear un proyecto Supabase nuevo, correr: supabase link --project-ref <nuevo-id>
