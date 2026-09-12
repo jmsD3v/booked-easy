@@ -59,8 +59,8 @@ const Index = () => {
                     Empezar gratis <ArrowRight className="h-4 w-4" />
                   </Button>
                 </Link>
-                <Link to="/demo">
-                  <Button variant="outline" size="lg" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 text-base">
+                <Link to="/b/demo">
+                  <Button variant="outline" size="lg" className="bg-transparent border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/10 text-base">
                     Ver demo
                   </Button>
                 </Link>
