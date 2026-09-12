@@ -232,7 +232,7 @@ const PublicBooking = () => {
         }
       }
 
-      const { error } = await supabase.from('appointments').insert({
+      const { data: created, error } = await supabase.from('appointments').insert({
         business_id: business.id,
         service_id: selectedService.id,
         staff_id: staffIdToBook,
@@ -243,7 +243,7 @@ const PublicBooking = () => {
         start_time: selectedTime + ':00',
         end_time: endTime + ':00',
         status: 'pending',
-      });
+      }).select('id').single();
       if (error) {
         // 23505 = unique_violation — the DB-level backstop against double-booking
         if ((error as any).code === '23505') {
@@ -254,6 +254,11 @@ const PublicBooking = () => {
         }
         throw error;
       }
+      // Fire-and-forget: a WhatsApp send hiccup (or the business not having
+      // it enabled at all) should never block the booking itself succeeding.
+      supabase.functions.invoke('send-whatsapp', {
+        body: { appointment_id: created.id, message_type: 'confirmation' },
+      }).catch(() => {});
       setStep(5);
     } catch (err: any) {
       toast.error(err.message || 'Error al reservar');

@@ -88,7 +88,7 @@ const DashboardLayout = ({ children }: { children: ReactNode }) => {
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-16 items-center gap-4 border-b border-border bg-card px-4 md:px-6">
           <button onClick={() => setSidebarOpen(true)} className="md:hidden text-muted-foreground">
             <Menu className="h-5 w-5" />

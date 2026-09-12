@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { MessageCircle, Info } from 'lucide-react';
+import { MessageCircle, Info, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useBusiness } from '@/hooks/useBusiness';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const WhatsAppPage = () => {
   const { data: business } = useBusiness();
@@ -49,6 +52,23 @@ const WhatsAppPage = () => {
     }
   }, [config]);
 
+  const { data: messages } = useQuery({
+    queryKey: ['whatsapp-messages', business?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('whatsapp_messages')
+        .select('*')
+        .eq('business_id', business!.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!business?.id,
+  });
+
+  const hasRealCredentials = Boolean(form.phone_number_id && form.access_token);
+
   const handleSave = async () => {
     if (!business) return;
     try {
@@ -77,8 +97,14 @@ const WhatsAppPage = () => {
         <CardContent className="flex items-start gap-3 p-4">
           <Info className="mt-0.5 h-5 w-5 text-info" />
           <div className="text-sm">
-            <p className="font-medium">¿Cómo funciona?</p>
-            <p className="text-muted-foreground">Necesitás una cuenta de WhatsApp Business API (Meta Cloud API). Obtenés un Phone Number ID y un Access Token desde el panel de Meta for Developers.</p>
+            <p className="font-medium">
+              {hasRealCredentials ? 'Conectado a Meta Cloud API' : 'Modo simulado — sin credenciales de Meta'}
+            </p>
+            <p className="text-muted-foreground">
+              {hasRealCredentials
+                ? 'Los mensajes se envían de verdad por WhatsApp.'
+                : 'Sin Phone Number ID y Access Token, los mensajes se registran abajo pero no se envían. Cargalos para que salgan de verdad. Se obtienen desde el panel de Meta for Developers.'}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -113,6 +139,41 @@ const WhatsAppPage = () => {
       <Button onClick={handleSave} className="gap-2">
         <MessageCircle className="h-4 w-4" /> Guardar configuración
       </Button>
+
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 font-display"><Send className="h-4 w-4" /> Mensajes recientes</CardTitle>
+          <CardDescription>Últimos 20 — confirmaciones al reservar y recordatorios del día anterior</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!messages?.length && <p className="py-6 text-center text-sm text-muted-foreground">Todavía no se registró ningún mensaje.</p>}
+          <div className="space-y-3">
+            {messages?.map((m: any) => (
+              <div key={m.id} className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium">{m.to_phone}</span>
+                    <Badge variant="outline" className="text-xs">{m.message_type === 'confirmation' ? 'Confirmación' : 'Recordatorio'}</Badge>
+                    <Badge
+                      className={
+                        m.status === 'sent' ? 'bg-primary text-primary-foreground' :
+                        m.status === 'simulated' ? 'bg-muted text-muted-foreground' :
+                        'bg-destructive text-destructive-foreground'
+                      }
+                    >
+                      {m.status === 'sent' ? 'Enviado' : m.status === 'simulated' ? 'Simulado' : 'Falló'}
+                    </Badge>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-muted-foreground">{m.body}</p>
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {format(new Date(m.created_at), "d MMM, HH:mm", { locale: es })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
