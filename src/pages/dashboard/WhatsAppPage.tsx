@@ -36,8 +36,8 @@ const WhatsAppPage = () => {
     phone_number_id: '',
     access_token: '',
     is_active: false,
-    confirmation_message: 'Hola {nombre}, tu turno en {negocio} está reservado para {fecha} a las {hora}. Respondé 1 para confirmar o 2 para cancelar.',
-    reminder_message: 'Recordatorio: Tu turno en {negocio} es mañana {fecha} a las {hora}.',
+    confirmation_message: 'Hola {nombre}, tu turno en {negocio} está reservado para {fecha} a las {hora}. Para ver o cancelar tu turno: {link}',
+    reminder_message: 'Recordatorio: Tu turno en {negocio} es mañana {fecha} a las {hora}. Para cancelar: {link}',
   });
 
   useEffect(() => {
@@ -128,7 +128,7 @@ const WhatsAppPage = () => {
       <Card className="shadow-card">
         <CardHeader>
           <CardTitle className="font-display">Mensajes personalizados</CardTitle>
-          <CardDescription>Usá {'{nombre}'}, {'{negocio}'}, {'{fecha}'}, {'{hora}'} como variables</CardDescription>
+          <CardDescription>Usá {'{nombre}'}, {'{negocio}'}, {'{fecha}'}, {'{hora}'}, {'{link}'} (para ver/cancelar el turno) como variables</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2"><Label>Mensaje de confirmación</Label><Textarea rows={3} value={form.confirmation_message} onChange={(e) => setForm({ ...form, confirmation_message: e.target.value })} /></div>

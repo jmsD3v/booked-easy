@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle2, ArrowLeft, ArrowRight, Scissors, Phone, User, Mail, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ const PublicBooking = () => {
   const [clientPhone, setClientPhone] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [manageToken, setManageToken] = useState<string | null>(null);
 
   const { data: business } = useQuery({
     queryKey: ['public-business', slug],
@@ -232,7 +233,16 @@ const PublicBooking = () => {
         }
       }
 
-      const { data: created, error } = await supabase.from('appointments').insert({
+      // Generated client-side and inserted directly, rather than reading it
+      // back after insert: anon's SELECT on appointments is intentionally
+      // restricted to non-PII columns (see the earlier PII-leak fix), and
+      // that restriction applies per-column across every row anon can see —
+      // not just the row just created. Granting SELECT on manage_token would
+      // let anyone dump every appointment's manage token, not just their
+      // own. Generating it here means we never need to read it back at all.
+      const newManageToken = crypto.randomUUID();
+
+      const { error } = await supabase.from('appointments').insert({
         business_id: business.id,
         service_id: selectedService.id,
         staff_id: staffIdToBook,
@@ -243,7 +253,8 @@ const PublicBooking = () => {
         start_time: selectedTime + ':00',
         end_time: endTime + ':00',
         status: 'pending',
-      }).select('id').single();
+        manage_token: newManageToken,
+      });
       if (error) {
         // 23505 = unique_violation — the DB-level backstop against double-booking
         if ((error as any).code === '23505') {
@@ -254,10 +265,13 @@ const PublicBooking = () => {
         }
         throw error;
       }
+      setManageToken(newManageToken);
       // Fire-and-forget: a WhatsApp send hiccup (or the business not having
       // it enabled at all) should never block the booking itself succeeding.
+      // The edge function runs with the service role, so it looks up
+      // manage_token itself to build the cancel link — it isn't passed here.
       supabase.functions.invoke('send-whatsapp', {
-        body: { appointment_id: created.id, message_type: 'confirmation' },
+        body: { manage_token: newManageToken, message_type: 'confirmation' },
       }).catch(() => {});
       setStep(5);
     } catch (err: any) {
@@ -523,9 +537,17 @@ const PublicBooking = () => {
               </Card>
             )}
 
+            {manageToken && (
+              <p className="text-sm">
+                <Link to={`/mis-turnos/${manageToken}`} className="font-medium text-primary underline underline-offset-2">
+                  Ver o cancelar mi turno
+                </Link>
+              </p>
+            )}
+
             <Button variant="outline" onClick={() => {
               setStep(0); setSelectedService(null); setSelectedStaffId(null); setSelectedDate(null);
-              setSelectedTime(null); setClientName(''); setClientPhone(''); setClientEmail('');
+              setSelectedTime(null); setClientName(''); setClientPhone(''); setClientEmail(''); setManageToken(null);
             }}>
               Reservar otro turno
             </Button>

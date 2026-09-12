@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import PublicBooking from "./pages/PublicBooking";
+import ManageAppointment from "./pages/ManageAppointment";
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import ServicesPage from "./pages/dashboard/ServicesPage";
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/b/:slug" element={<PublicBooking />} />
+            <Route path="/mis-turnos/:token" element={<ManageAppointment />} />
             <Route path="/dashboard/*" element={<DashboardRoutes />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

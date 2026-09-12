@@ -12,8 +12,19 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// Local-dev default. A real deployment sets SITE_URL to the actual domain
+// so links in WhatsApp messages point somewhere real.
+const SITE_URL = Deno.env.get('SITE_URL') ?? 'http://localhost:8080';
 
-type Payload = { appointment_id: string; message_type: 'confirmation' | 'reminder' };
+type Payload = {
+  message_type: 'confirmation' | 'reminder';
+  // The public booking flow only ever knows the token it generated (anon
+  // can't read manage_token back — see PublicBooking.tsx's handleBook for
+  // why); the internal reminder cron already knows the row's id instead.
+  // Either is enough to look the appointment up.
+  appointment_id?: string;
+  manage_token?: string;
+};
 
 function renderTemplate(template: string, vars: Record<string, string>) {
   return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`);
@@ -30,33 +41,34 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 });
   }
-  if (!payload.appointment_id || !payload.message_type) {
-    return new Response(JSON.stringify({ error: 'appointment_id and message_type are required' }), { status: 400 });
+  if ((!payload.appointment_id && !payload.manage_token) || !payload.message_type) {
+    return new Response(JSON.stringify({ error: 'appointment_id or manage_token, and message_type, are required' }), { status: 400 });
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-  // Idempotency: this endpoint takes an anon-callable appointment_id with no
-  // auth check (the public booking flow calls it right after an anonymous
-  // insert), so without this, replaying the same request would duplicate
-  // sends/log rows indefinitely for the same appointment.
+  let apptQuery = supabase
+    .from('appointments')
+    .select('id, business_id, client_name, client_phone, appointment_date, start_time, manage_token, services(name)');
+  apptQuery = payload.appointment_id
+    ? apptQuery.eq('id', payload.appointment_id)
+    : apptQuery.eq('manage_token', payload.manage_token!);
+  const { data: appt, error: apptErr } = await apptQuery.maybeSingle();
+  if (apptErr || !appt) {
+    return new Response(JSON.stringify({ error: 'Appointment not found' }), { status: 404 });
+  }
+
+  // Idempotency: this endpoint has no auth check (called anonymously from
+  // the public booking flow), so without this, replaying the same request
+  // would duplicate sends/log rows indefinitely for the same appointment.
   const { data: already } = await supabase
     .from('whatsapp_messages')
     .select('id')
-    .eq('appointment_id', payload.appointment_id)
+    .eq('appointment_id', appt.id)
     .eq('message_type', payload.message_type)
     .maybeSingle();
   if (already) {
     return new Response(JSON.stringify({ skipped: true, reason: 'Already sent' }), { status: 200 });
-  }
-
-  const { data: appt, error: apptErr } = await supabase
-    .from('appointments')
-    .select('id, business_id, client_name, client_phone, appointment_date, start_time, services(name)')
-    .eq('id', payload.appointment_id)
-    .maybeSingle();
-  if (apptErr || !appt) {
-    return new Response(JSON.stringify({ error: 'Appointment not found' }), { status: 404 });
   }
 
   const [{ data: business }, { data: config }] = await Promise.all([
@@ -74,6 +86,7 @@ Deno.serve(async (req) => {
     negocio: business?.name ?? '',
     fecha: appt.appointment_date,
     hora: (appt.start_time as string).slice(0, 5),
+    link: `${SITE_URL}/mis-turnos/${appt.manage_token}`,
   };
   const body = renderTemplate(template, vars);
 
