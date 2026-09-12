@@ -140,16 +140,16 @@ const HoursPage = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           {hours.map((h, i) => (
-            <div key={i} className="flex items-center gap-4 rounded-lg border border-border p-3">
-              <div className="w-28">
-                <span className="font-medium">{DAYS[h.day_of_week]}</span>
+            <div key={i} className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3 sm:flex-nowrap sm:gap-4">
+              <div className="flex w-full items-center gap-3 sm:w-28 sm:shrink-0">
+                <span className="w-24 font-medium sm:w-auto">{DAYS[h.day_of_week]}</span>
+                <Switch checked={h.is_open} onCheckedChange={(v) => updateDay(i, 'is_open', v)} />
               </div>
-              <Switch checked={h.is_open} onCheckedChange={(v) => updateDay(i, 'is_open', v)} />
               {h.is_open ? (
-                <div className="flex items-center gap-2">
-                  <Input type="time" value={h.open_time} onChange={(e) => updateDay(i, 'open_time', e.target.value)} className="w-32" />
+                <div className="flex flex-1 flex-wrap items-center gap-2">
+                  <Input type="time" value={h.open_time} onChange={(e) => updateDay(i, 'open_time', e.target.value)} className="w-[7.5rem] min-w-0 flex-1 sm:w-32 sm:flex-none" />
                   <span className="text-muted-foreground">a</span>
-                  <Input type="time" value={h.close_time} onChange={(e) => updateDay(i, 'close_time', e.target.value)} className="w-32" />
+                  <Input type="time" value={h.close_time} onChange={(e) => updateDay(i, 'close_time', e.target.value)} className="w-[7.5rem] min-w-0 flex-1 sm:w-32 sm:flex-none" />
                 </div>
               ) : (
                 <span className="text-sm text-muted-foreground">Cerrado</span>
