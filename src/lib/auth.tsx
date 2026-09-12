@@ -36,24 +36,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, businessName: string) => {
-    const slug = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    
-    const { data, error } = await supabase.auth.signUp({
+    // The business row is created server-side by the on_auth_user_created_business
+    // trigger (see supabase/migrations/20260913000001_...sql) reading business_name
+    // from raw_user_meta_data — not from here. Creating it from the client used to
+    // fail whenever email confirmation is required, since there's no active session
+    // yet at this point and the RLS check needs auth.uid() = owner_id.
+    const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin }
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { business_name: businessName },
+      },
     });
     if (error) throw error;
-
-    if (data.user) {
-      const { error: bizError } = await supabase.from('businesses').insert({
-        owner_id: data.user.id,
-        name: businessName,
-        slug: slug + '-' + Date.now().toString(36),
-        category: 'general',
-      });
-      if (bizError) throw bizError;
-    }
   };
 
   const signIn = async (email: string, password: string) => {
