@@ -499,6 +499,30 @@ const PublicBooking = () => {
             <p className="text-sm text-muted-foreground">
               Recibirás una confirmación por WhatsApp si el negocio tiene habilitadas las notificaciones.
             </p>
+
+            {(business.payment_alias || business.payment_qr_url) && (
+              <Card className="mx-auto max-w-sm text-left shadow-card">
+                <CardContent className="space-y-3 p-4">
+                  <p className="text-sm font-medium text-accent-foreground">Podés transferir el pago</p>
+                  {business.payment_alias && (
+                    <div className="flex items-center justify-between gap-2 rounded-lg bg-accent px-3 py-2">
+                      <span className="font-mono text-sm">{business.payment_alias}</span>
+                      <Button
+                        size="sm" variant="ghost"
+                        onClick={() => { navigator.clipboard.writeText(business.payment_alias); toast.success('Alias copiado'); }}
+                      >
+                        Copiar
+                      </Button>
+                    </div>
+                  )}
+                  {business.payment_qr_url && (
+                    <img src={business.payment_qr_url} alt="QR de pago" className="mx-auto h-40 w-40 rounded-lg border border-border object-cover" />
+                  )}
+                  {business.payment_note && <p className="text-sm text-muted-foreground">{business.payment_note}</p>}
+                </CardContent>
+              </Card>
+            )}
+
             <Button variant="outline" onClick={() => {
               setStep(0); setSelectedService(null); setSelectedStaffId(null); setSelectedDate(null);
               setSelectedTime(null); setClientName(''); setClientPhone(''); setClientEmail('');
