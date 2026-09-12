@@ -4,7 +4,7 @@ Sistema de reservas y turnos online multi-sede: agenda, personal, horarios de at
 
 ## Qué hace (el más completo de la tanda)
 
-- **Multi-negocio / multi-sede** — `businesses` + `branches`.
+- **Multi-negocio** — `businesses`, uno por dueño.
 - **Servicios y personal** — `services`, `staff`, `staff_schedules`.
 - **Horarios de atención** — `business_hours` por sucursal.
 - **Turnos** — `appointments`, con página pública de reserva (`PublicBooking.tsx`) que inserta directo contra Supabase — no es una maqueta.
@@ -25,10 +25,12 @@ Auditoría encontró y corrigió dos problemas reales (ver `supabase/migrations/
 
 ## Pendiente (funcional, no seguridad)
 
+- `branches` existe en el esquema pero no tiene ninguna pantalla — ni en el dashboard ni en la reserva pública. Hoy es una tabla muerta, no una feature de multi-sede real.
 - La reserva pública nunca asigna `staff_id` — con 2+ empleados el sistema bloquea horarios como ocupados aunque haya otro empleado libre.
 - Sin protección contra doble reserva simultánea (falta un constraint o chequeo transaccional).
 - El envío de WhatsApp no está implementado — se guardan credenciales y mensajes, pero no hay ninguna llamada a la Meta Cloud API todavía.
 - `client_email` existe en la tabla pero el formulario público nunca lo pide.
+- `logo_url` existe en `businesses` pero no hay forma de subirlo desde Configuración.
 
 ## Estado actual
 
