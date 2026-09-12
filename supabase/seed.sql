@@ -2,9 +2,14 @@
 -- staff and hours, so "Ver demo" on the landing page and the review/testing
 -- workflow have something real to click through. Never run against a
 -- production project — this creates a fake auth.users row directly.
+-- GoTrue scans confirmation_token/recovery_token/etc. as non-nullable
+-- strings — NULL there (the column default) makes every login 500 with
+-- "converting NULL to string is unsupported". Set them to '' explicitly.
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password,
   email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token,
   created_at, updated_at
 ) values (
   '00000000-0000-0000-0000-000000000001',
@@ -15,6 +20,7 @@ insert into auth.users (
   now(),
   '{"provider":"email","providers":["email"]}',
   '{"business_name":"Barbería El Zorro"}',
+  '', '', '', '', '', '', '', '',
   now(), now()
 );
 

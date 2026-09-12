@@ -284,7 +284,14 @@ const PublicBooking = () => {
     <div className="min-h-screen bg-secondary">
       {/* Header */}
       <div className="bg-hero py-8">
-        <div className="container text-center">
+        <div className="container flex flex-col items-center text-center">
+          {business.logo_url && (
+            <img
+              src={business.logo_url}
+              alt={business.name}
+              className="mb-3 h-16 w-16 rounded-xl object-cover shadow-elevated"
+            />
+          )}
           <h1 className="text-2xl font-bold text-primary-foreground font-display md:text-3xl">{business.name}</h1>
           {business.description && <p className="mt-2 text-primary-foreground/70">{business.description}</p>}
         </div>
