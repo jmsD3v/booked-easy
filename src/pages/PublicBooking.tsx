@@ -108,6 +108,19 @@ const PublicBooking = () => {
     enabled: !!business?.id,
   });
 
+  const { data: scheduleBlocks } = useQuery({
+    queryKey: ['public-schedule-blocks', business?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('schedule_blocks')
+        .select('staff_id, block_date')
+        .eq('business_id', business!.id);
+      if (error) throw error;
+      return data as { staff_id: string | null; block_date: string }[];
+    },
+    enabled: !!business?.id,
+  });
+
   const dateStr = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
   const { data: existingAppointments, refetch: refetchAppointments } = useQuery({
     queryKey: ['public-appointments', business?.id, dateStr],
@@ -129,18 +142,22 @@ const PublicBooking = () => {
   // not by excluding the day outright.
   const maxLeadDays = business?.max_lead_days ?? 30;
   const minLeadHours = business?.min_lead_hours ?? 0;
+  const businessClosedDates = new Set((scheduleBlocks ?? []).filter((b) => !b.staff_id).map((b) => b.block_date));
   const availableDays = Array.from({ length: maxLeadDays }, (_, i) => addDays(startOfDay(new Date()), i)).filter((date) => {
     const dayOfWeek = date.getDay();
     const hours = businessHours?.find((h: any) => h.day_of_week === dayOfWeek);
-    return hours ? hours.is_open : true;
+    if (hours && !hours.is_open) return false;
+    return !businessClosedDates.has(format(date, 'yyyy-MM-dd'));
   });
 
   const bufferMinutes = business?.buffer_minutes ?? 0;
 
-  // A given staff member is free for [slotStart, slotEnd) on dayOfWeek if their
-  // own schedule covers that window and no existing appointment of theirs —
-  // padded by the business's buffer on both sides — overlaps it.
+  // A given staff member is free for [slotStart, slotEnd) on dayOfWeek if
+  // they're not off that specific date, their own weekly schedule covers
+  // that window, and no existing appointment of theirs — padded by the
+  // business's buffer on both sides — overlaps it.
   const isStaffFreeForSlot = (staffId: string, dayOfWeek: number, slotStart: string, slotEnd: string, appts: Appt[]) => {
+    if (dateStr && scheduleBlocks?.some((b) => b.staff_id === staffId && b.block_date === dateStr)) return false;
     const sched = staffSchedules?.find((s) => s.staff_id === staffId && s.day_of_week === dayOfWeek && s.is_available);
     if (!sched) return false;
     if (slotStart < sched.start_time.slice(0, 5) || slotEnd > sched.end_time.slice(0, 5)) return false;

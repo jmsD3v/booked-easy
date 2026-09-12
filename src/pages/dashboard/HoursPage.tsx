@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { useBusiness } from '@/hooks/useBusiness';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Trash2 } from 'lucide-react';
+import { useBusiness, useStaff } from '@/hooks/useBusiness';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+
+const ALL_STAFF = 'all';
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -19,7 +25,50 @@ interface DayHours {
 
 const HoursPage = () => {
   const { data: business } = useBusiness();
+  const { data: staff } = useStaff(business?.id);
   const queryClient = useQueryClient();
+
+  const { data: blocks } = useQuery({
+    queryKey: ['schedule-blocks', business?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('schedule_blocks')
+        .select('*, staff(name)')
+        .eq('business_id', business!.id)
+        .order('block_date');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!business?.id,
+  });
+
+  const [newBlock, setNewBlock] = useState({ block_date: '', staff_id: ALL_STAFF, reason: '' });
+
+  const addBlock = async () => {
+    if (!business || !newBlock.block_date) {
+      toast.error('Elegí una fecha');
+      return;
+    }
+    const { error } = await supabase.from('schedule_blocks').insert({
+      business_id: business.id,
+      staff_id: newBlock.staff_id === ALL_STAFF ? null : newBlock.staff_id,
+      block_date: newBlock.block_date,
+      reason: newBlock.reason.trim() || null,
+    });
+    if (error) {
+      toast.error(error.code === '23505' ? 'Ya existe un bloqueo para esa fecha' : error.message);
+      return;
+    }
+    toast.success('Día bloqueado');
+    setNewBlock({ block_date: '', staff_id: ALL_STAFF, reason: '' });
+    queryClient.invalidateQueries({ queryKey: ['schedule-blocks'] });
+  };
+
+  const removeBlock = async (id: string) => {
+    const { error } = await supabase.from('schedule_blocks').delete().eq('id', id);
+    if (error) toast.error(error.message);
+    else queryClient.invalidateQueries({ queryKey: ['schedule-blocks'] });
+  };
 
   const { data: savedHours } = useQuery({
     queryKey: ['business-hours', business?.id],
@@ -108,6 +157,42 @@ const HoursPage = () => {
             </div>
           ))}
           <Button onClick={handleSave} className="mt-4">Guardar horarios</Button>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="font-display">Días bloqueados</CardTitle>
+          <CardDescription>Feriados (todo el negocio) o el día libre de un profesional puntual</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+            <Input type="date" value={newBlock.block_date} onChange={(e) => setNewBlock({ ...newBlock, block_date: e.target.value })} />
+            <Select value={newBlock.staff_id} onValueChange={(v) => setNewBlock({ ...newBlock, staff_id: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL_STAFF}>Todo el negocio</SelectItem>
+                {staff?.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Input placeholder="Motivo (opcional)" value={newBlock.reason} onChange={(e) => setNewBlock({ ...newBlock, reason: e.target.value })} />
+            <Button onClick={addBlock}>Bloquear</Button>
+          </div>
+
+          <div className="space-y-2">
+            {!blocks?.length && <p className="py-4 text-center text-sm text-muted-foreground">No hay días bloqueados.</p>}
+            {blocks?.map((b: any) => (
+              <div key={b.id} className="flex items-center justify-between gap-2 rounded-lg border border-border p-3">
+                <div>
+                  <p className="font-medium">{format(new Date(b.block_date + 'T00:00:00'), "d 'de' MMMM, yyyy", { locale: es })}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {b.staff?.name ? `Solo ${b.staff.name}` : 'Todo el negocio'}{b.reason ? ` — ${b.reason}` : ''}
+                  </p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => removeBlock(b.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
