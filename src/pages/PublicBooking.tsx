@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format, addDays } from 'date-fns';
+import { format, addDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 
@@ -17,6 +17,11 @@ type StaffSchedule = { staff_id: string; day_of_week: number; start_time: string
 type Appt = { staff_id: string | null; start_time: string; end_time: string };
 
 const ANY_STAFF = 'any';
+
+const hhmmToMinutes = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
 
 const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -119,24 +124,33 @@ const PublicBooking = () => {
     enabled: !!business?.id && !!dateStr,
   });
 
-  // Generate next 14 days
-  const availableDays = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i + 1)).filter((date) => {
+  // Starts at today (i=0) — whether today itself has any real slots left
+  // depends on min_lead_hours and is handled per-slot in generateTimeSlots,
+  // not by excluding the day outright.
+  const maxLeadDays = business?.max_lead_days ?? 30;
+  const minLeadHours = business?.min_lead_hours ?? 0;
+  const availableDays = Array.from({ length: maxLeadDays }, (_, i) => addDays(startOfDay(new Date()), i)).filter((date) => {
     const dayOfWeek = date.getDay();
     const hours = businessHours?.find((h: any) => h.day_of_week === dayOfWeek);
     return hours ? hours.is_open : true;
   });
 
+  const bufferMinutes = business?.buffer_minutes ?? 0;
+
   // A given staff member is free for [slotStart, slotEnd) on dayOfWeek if their
-  // own schedule covers that window and no existing appointment of theirs overlaps it.
+  // own schedule covers that window and no existing appointment of theirs —
+  // padded by the business's buffer on both sides — overlaps it.
   const isStaffFreeForSlot = (staffId: string, dayOfWeek: number, slotStart: string, slotEnd: string, appts: Appt[]) => {
     const sched = staffSchedules?.find((s) => s.staff_id === staffId && s.day_of_week === dayOfWeek && s.is_available);
     if (!sched) return false;
     if (slotStart < sched.start_time.slice(0, 5) || slotEnd > sched.end_time.slice(0, 5)) return false;
+    const sStart = hhmmToMinutes(slotStart);
+    const sEnd = hhmmToMinutes(slotEnd);
     return !appts.some((apt) => {
       if (apt.staff_id !== staffId) return false;
-      const aptStart = apt.start_time?.slice(0, 5);
-      const aptEnd = apt.end_time?.slice(0, 5);
-      return slotStart < aptEnd && slotEnd > aptStart;
+      const aptStart = hhmmToMinutes(apt.start_time.slice(0, 5)) - bufferMinutes;
+      const aptEnd = hhmmToMinutes(apt.end_time.slice(0, 5)) + bufferMinutes;
+      return sStart < aptEnd && sEnd > aptStart;
     });
   };
 
@@ -165,7 +179,17 @@ const PublicBooking = () => {
     const end = closeH * 60 + closeM;
     const appts = existingAppointments ?? [];
 
+    // If the selected date is today, no slot earlier than min_lead_hours
+    // from right now should be offered at all.
+    const now = new Date();
+    const isToday = format(selectedDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
+    const earliestMinutesToday = isToday ? (now.getHours() * 60 + now.getMinutes()) + minLeadHours * 60 : -Infinity;
+
     while (current + duration <= end) {
+      if (current < earliestMinutesToday) {
+        current += 30;
+        continue;
+      }
       const h = Math.floor(current / 60);
       const m = current % 60;
       const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
@@ -176,11 +200,11 @@ const PublicBooking = () => {
       const endStr = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
 
       // Without staff set up, fall back to the old business-wide check (any
-      // appointment in this window blocks the slot, regardless of staff_id).
+      // appointment — padded by the buffer — in this window blocks the slot).
       const legacyTaken = !hasStaff && appts.some((apt) => {
-        const aptStart = apt.start_time?.slice(0, 5);
-        const aptEnd = apt.end_time?.slice(0, 5);
-        return timeStr < aptEnd && endStr > aptStart;
+        const aptStart = hhmmToMinutes(apt.start_time.slice(0, 5)) - bufferMinutes;
+        const aptEnd = hhmmToMinutes(apt.end_time.slice(0, 5)) + bufferMinutes;
+        return current < aptEnd && endTime > aptStart;
       });
 
       const available = hasStaff

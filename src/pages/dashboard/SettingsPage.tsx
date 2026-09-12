@@ -32,6 +32,7 @@ const SettingsPage = () => {
   const [form, setForm] = useState({
     name: '', description: '', phone: '', email: '', category: 'general',
     payment_alias: '', payment_note: '',
+    buffer_minutes: 0, min_lead_hours: 0, max_lead_days: 30,
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingQr, setUploadingQr] = useState(false);
@@ -48,6 +49,9 @@ const SettingsPage = () => {
         category: business.category || 'general',
         payment_alias: business.payment_alias || '',
         payment_note: business.payment_note || '',
+        buffer_minutes: business.buffer_minutes ?? 0,
+        min_lead_hours: business.min_lead_hours ?? 0,
+        max_lead_days: business.max_lead_days ?? 30,
       });
     }
   }, [business]);
@@ -205,6 +209,42 @@ const SettingsPage = () => {
                 </Button>
                 <p className="text-xs text-muted-foreground">Captura del QR de tu billetera virtual</p>
               </div>
+            </div>
+          </div>
+          <Button onClick={handleSave}>Guardar cambios</Button>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="font-display">Reglas de reserva</CardTitle>
+          <CardDescription>Controlan qué horarios se ofrecen en tu página pública</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Buffer entre turnos</Label>
+              <Input
+                type="number" min={0} max={120} value={form.buffer_minutes}
+                onChange={(e) => setForm({ ...form, buffer_minutes: Number(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground">Minutos libres entre un turno y el siguiente, por profesional</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Anticipación mínima</Label>
+              <Input
+                type="number" min={0} max={168} value={form.min_lead_hours}
+                onChange={(e) => setForm({ ...form, min_lead_hours: Number(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground">Horas mínimas antes del turno para poder reservarlo</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Anticipación máxima</Label>
+              <Input
+                type="number" min={1} max={365} value={form.max_lead_days}
+                onChange={(e) => setForm({ ...form, max_lead_days: Number(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground">Días máximos hacia adelante que se pueden reservar</p>
             </div>
           </div>
           <Button onClick={handleSave}>Guardar cambios</Button>
