@@ -24,3 +24,23 @@ dist-ssr
 *.sw?
 
 .env
+
+# --- Base de seguridad e higiene (2026-10) ---
+.env.*
+!.env.example
+!.env.*.example
+!.env.sample
+!.env.template
+.vercel
+logs/
+*.pem
+*.key
+*.p12
+*.pfx
+Thumbs.db
+.pnpm-store/
+build/
+coverage/
+.pnpm-debug.log*
+supabase/.temp/
+supabase/.branches/
