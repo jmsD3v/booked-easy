@@ -71,12 +71,9 @@ const PublicBooking = () => {
   const { data: staff } = useQuery({
     queryKey: ['public-staff', business?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('staff')
-        .select('id, business_id, name, avatar_url, is_active')
-        .eq('business_id', business!.id)
-        .eq('is_active', true)
-        .order('name');
+      // Por RPC y no de la tabla: con sesión abierta (authenticated) la tabla
+      // staff solo muestra el personal propio (ver migración 20261016000003).
+      const { data, error } = await supabase.rpc('get_public_staff', { p_business_id: business!.id });
       if (error) throw error;
       return data as Staff[];
     },
@@ -127,12 +124,12 @@ const PublicBooking = () => {
   const { data: existingAppointments, refetch: refetchAppointments } = useQuery({
     queryKey: ['public-appointments', business?.id, dateStr],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('staff_id, start_time, end_time')
-        .eq('business_id', business!.id)
-        .eq('appointment_date', dateStr!)
-        .neq('status', 'cancelled');
+      // Solo horarios ocupados (empleado, inicio, fin): la tabla de turnos no
+      // es legible desde la página pública (ver migración 20261016000003).
+      const { data, error } = await supabase.rpc('get_booked_slots', {
+        p_business_id: business!.id,
+        p_date: dateStr!,
+      });
       if (error) throw error;
       return data as Appt[];
     },
@@ -254,14 +251,12 @@ const PublicBooking = () => {
 
     try {
       // Re-check against the freshest data right before inserting, to shrink
-      // (not eliminate — the unique index below is what actually guarantees
+      // (not eliminate — the exclusion constraint is what actually guarantees
       // it) the window where two clients could both see the same open slot.
-      const { data: freshAppts, error: freshErr } = await supabase
-        .from('appointments')
-        .select('staff_id, start_time, end_time')
-        .eq('business_id', business.id)
-        .eq('appointment_date', format(selectedDate, 'yyyy-MM-dd'))
-        .neq('status', 'cancelled');
+      const { data: freshAppts, error: freshErr } = await supabase.rpc('get_booked_slots', {
+        p_business_id: business.id,
+        p_date: format(selectedDate, 'yyyy-MM-dd'),
+      });
       if (freshErr) throw freshErr;
 
       let staffIdToBook: string | null = null;

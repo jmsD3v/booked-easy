@@ -37,7 +37,7 @@ pnpm dev                      # http://localhost:8080
 ```
 
 - Demo pública: http://localhost:8080/b/demo
-- Panel: http://localhost:8080/auth con `demo@turnopro.local` / `demo12345`
+- Panel: http://localhost:8080/auth con `demo@turnopro.local` / `demo12345` (Barbería El Zorro). Segundo negocio vacío para probar aislamiento: `otro@turnopro.local` / `demo12345` (`/b/luna`)
 - Mails de Auth (confirmación, reseteo): http://127.0.0.1:54324 (Mailpit)
 
 Para probar WhatsApp/recordatorios en local también hace falta la edge function: `pnpm exec supabase functions serve`.
@@ -97,7 +97,7 @@ No es plug-and-play: el esquema usa piezas propias de Supabase (`auth.users` y `
 ## Seguridad
 
 - Las filas de turnos son visibles para `anon` (para calcular horarios libres), pero las **columnas** con datos del cliente no: nombre, teléfono, email y notas solo los ve el dueño del negocio. Lo mismo con el contacto personal del staff.
-- Doble reserva y anticipación se validan en la base (restricción de exclusión y trigger), no solo en la UI.
+- La reserva pública se valida entera en la base: estado, horarios, bloqueos, duración, buffer, anticipación (en hora del negocio), datos del cliente y que servicio y empleado sean del mismo negocio (ADR-004, ADR-007). `anon` no lee la tabla de turnos: la disponibilidad sale de un RPC.
 - El negocio se crea con un trigger en `auth.users`, no desde el cliente.
 - Los recordatorios solo los dispara el cron; ningún cliente puede ejecutarlos por la API.
 

@@ -86,12 +86,10 @@ const ManageAppointment = () => {
   const { data: dayAppointments } = useQuery({
     queryKey: ['manage-day-appointments', appt?.business_id, newDateStr],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('staff_id, start_time, end_time')
-        .eq('business_id', appt!.business_id)
-        .eq('appointment_date', newDateStr!)
-        .neq('status', 'cancelled');
+      const { data, error } = await supabase.rpc('get_booked_slots', {
+        p_business_id: appt!.business_id,
+        p_date: newDateStr!,
+      });
       if (error) throw error;
       return data;
     },

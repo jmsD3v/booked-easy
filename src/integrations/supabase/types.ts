@@ -217,6 +217,7 @@ export type Database = {
           payment_qr_url: string | null;
           phone: string | null;
           slug: string;
+          timezone: string;
           updated_at: string;
         };
         ComputedFields: never;
@@ -237,6 +238,7 @@ export type Database = {
           payment_qr_url?: string | null;
           phone?: string | null;
           slug: string;
+          timezone?: string;
           updated_at?: string;
         };
         Update: {
@@ -256,6 +258,7 @@ export type Database = {
           payment_qr_url?: string | null;
           phone?: string | null;
           slug?: string;
+          timezone?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -522,9 +525,17 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      appointment_starts_at: {
+        Args: { p_business_id: string; p_date: string; p_time: string };
+        Returns: string;
+      };
       cancel_appointment_by_token: {
         Args: { p_token: string };
         Returns: boolean;
+      };
+      edge_functions_base_url: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
       };
       get_appointment_by_token: {
         Args: { p_token: string };
@@ -543,7 +554,26 @@ export type Database = {
           status: Database["public"]["Enums"]["appointment_status"];
         }[];
       };
+      get_booked_slots: {
+        Args: { p_business_id: string; p_date: string };
+        Returns: {
+          end_time: string;
+          staff_id: string;
+          start_time: string;
+        }[];
+      };
+      get_public_staff: {
+        Args: { p_business_id: string };
+        Returns: {
+          avatar_url: string;
+          business_id: string;
+          id: string;
+          is_active: boolean;
+          name: string;
+        }[];
+      };
       is_business_owner: { Args: { _business_id: string }; Returns: boolean };
+      is_valid_timezone: { Args: { tz: string }; Returns: boolean };
       reschedule_appointment_by_token: {
         Args: {
           p_new_date: string;

@@ -58,3 +58,17 @@ pg_cron (09:00 UTC) ──► send_appointment_reminders() ──pg_net──┘
 **Decisión.** Trigger `AFTER INSERT ON auth.users` (`SECURITY DEFINER`) que crea el negocio con el nombre de `raw_user_meta_data.business_name` y un slug sin acentos.
 
 **Consecuencias.** Un usuario = un negocio. Multi-negocio por cuenta o multi-sede requerirían revisar esto (la tabla `branches` existe pero no tiene pantallas).
+
+### ADR-007 — La reserva pública se valida en la base (2026-10-16)
+
+**Contexto.** Con la clave pública cualquiera podía insertar turnos ya "completados", fuera de horario, de 03:00 a 23:59, con servicios o empleados de otro negocio, y leer todos los turnos de todos los negocios. Además, con sesión abierta la página pública ni cargaba, y las reglas de tiempo corrían en UTC. Modelo de amenazas en `.planning/phases/01-endurecer-reserva/01-PLAN.md`.
+
+**Decisión.**
+- Trigger `enforce_public_booking_rules` para clientes (rol `anon` o `authenticated` que no es dueño): estado `pending`, fin = inicio + duración, horarios y bloqueos del negocio y del empleado, buffer, datos del cliente válidos, sin campos internos. El rol sale del JWT o, sin JWT, del `SET ROLE` de la sesión.
+- FKs compuestas `(service_id, business_id)` y `(staff_id, business_id)`: un turno solo puede usar servicios y empleados de su negocio, para todos los roles (incluido el dueño).
+- `anon` ya no lee `appointments`; la disponibilidad sale de `get_booked_slots()` (solo empleado/inicio/fin, solo dentro de la ventana reservable) y el personal público de `get_public_staff()`.
+- Lecturas públicas abiertas también a `authenticated` con las mismas condiciones que `anon`.
+- `businesses.timezone` y `appointment_starts_at()` para anticipación, cancelar y reprogramar.
+- `send-whatsapp` solo por `manage_token`, sin `verify_jwt` (la clave anon es pública; la credencial real es el token).
+
+**Consecuencias.** La UI puede tener bugs de disponibilidad sin que la base acepte turnos imposibles. Los errores de la base llegan en castellano y la UI los muestra tal cual. El dueño sigue pudiendo cargar turnos a mano fuera de las reglas, pero solo con sus propios servicios y empleados. Queda pendiente rate limiting contra spam de reservas válidas.

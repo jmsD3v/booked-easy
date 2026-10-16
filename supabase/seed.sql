@@ -24,6 +24,29 @@ insert into auth.users (
   now(), now()
 );
 
+-- Segundo negocio (vacío): sirve para probar aislamiento entre negocios y
+-- reservar en /b/demo con una sesión abierta de otro dueño.
+-- Cuenta: otro@turnopro.local / demo12345 (solo local).
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token,
+  created_at, updated_at
+) values (
+  '00000000-0000-0000-0000-000000000002',
+  '00000000-0000-0000-0000-000000000000',
+  'authenticated', 'authenticated',
+  'otro@turnopro.local',
+  crypt('demo12345', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{"business_name":"Peluquería Luna"}',
+  '', '', '', '', '', '', '', '',
+  now(), now()
+);
+update public.businesses set slug = 'luna' where owner_id = '00000000-0000-0000-0000-000000000002';
+
 -- The on_auth_user_created_business trigger already created a business row
 -- with a random slug — point it at the friendly "/b/demo" slug instead.
 update public.businesses
@@ -107,6 +130,9 @@ begin
 
     for s in 1..array_length(slots, 1) loop
       n := n + 1;
+      -- Sábado el negocio cierra a las 14: sin turnos de tarde (el seed corre
+      -- como postgres y no pasa por las reglas de la reserva pública).
+      continue when extract(dow from day) = 6 and slots[s] >= '13:00';
       -- Variación determinística: no todos los horarios ocupados todos los días.
       continue when (n % 4) = 0;
       svc_idx := 1 + (n % array_length(svc, 1));

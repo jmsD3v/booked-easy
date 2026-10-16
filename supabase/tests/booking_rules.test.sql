@@ -10,7 +10,8 @@ create temp table ctx on commit drop as
 select b.id as biz_id,
        (select id from public.services where business_id = b.id and duration_minutes = 45 limit 1) as svc_id,
        (select id from public.staff where business_id = b.id order by name limit 1) as staff_id,
-       (current_date + 20) as day -- lejos de los turnos del seed
+       -- Un lunes a 8-14 días (abierto, lejos de los turnos del seed).
+       (current_date + (8 - extract(isodow from current_date))::int + 7) as day
 from public.businesses b where b.slug = 'demo';
 grant select on ctx to anon;
 
@@ -42,8 +43,8 @@ select throws_ok(
   'anon no puede leer client_phone de appointments'
 );
 select lives_ok(
-  'select start_time, end_time, status from public.appointments',
-  'anon sí puede leer horarios para calcular disponibilidad'
+  $$select * from public.get_booked_slots((select biz_id from ctx), (select day from ctx))$$,
+  'anon sí puede ver horarios ocupados para calcular disponibilidad (por RPC)'
 );
 select throws_ok(
   'select email, phone from public.staff',
@@ -78,12 +79,12 @@ select lives_ok(
 
 -- --- Anticipación ----------------------------------------------------------
 reset role;
-update public.businesses set min_lead_hours = 72 where id = (select biz_id from ctx);
+update public.businesses set min_lead_hours = 168 where id = (select biz_id from ctx);
 set local role anon;
 
 select throws_ok(
   $$insert into public.appointments (business_id, service_id, staff_id, client_name, client_phone, appointment_date, start_time, end_time)
-    select biz_id, svc_id, staff_id, 'Eli', '1155550004', current_date + 1, '15:00', '15:45' from ctx$$,
+    select biz_id, svc_id, staff_id, 'Eli', '1155550004', day - 7, '15:00', '15:45' from ctx$$,
   '23514', null,
   'reserva con menos anticipación que min_lead_hours: rechazada'
 );

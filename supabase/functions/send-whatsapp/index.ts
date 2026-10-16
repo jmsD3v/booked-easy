@@ -18,12 +18,10 @@ const SITE_URL = Deno.env.get('SITE_URL') ?? 'http://localhost:8080';
 
 type Payload = {
   message_type: 'confirmation' | 'reminder';
-  // The public booking flow only ever knows the token it generated (anon
-  // can't read manage_token back — see PublicBooking.tsx's handleBook for
-  // why); the internal reminder cron already knows the row's id instead.
-  // Either is enough to look the appointment up.
-  appointment_id?: string;
-  manage_token?: string;
+  // Solo el token del turno (lo conoce el cliente que reservó y el cron).
+  // Antes también aceptaba appointment_id, que se podía enumerar y usar
+  // para mandar mensajes a clientes ajenos (T10 en la fase 1).
+  manage_token: string;
 };
 
 function renderTemplate(template: string, vars: Record<string, string>) {
@@ -41,19 +39,17 @@ Deno.serve(async (req) => {
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400 });
   }
-  if ((!payload.appointment_id && !payload.manage_token) || !payload.message_type) {
-    return new Response(JSON.stringify({ error: 'appointment_id or manage_token, and message_type, are required' }), { status: 400 });
+  if (!payload.manage_token || !['confirmation', 'reminder'].includes(payload.message_type)) {
+    return new Response(JSON.stringify({ error: 'manage_token and a valid message_type are required' }), { status: 400 });
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
-  let apptQuery = supabase
+  const { data: appt, error: apptErr } = await supabase
     .from('appointments')
-    .select('id, business_id, client_name, client_phone, appointment_date, start_time, manage_token, services(name)');
-  apptQuery = payload.appointment_id
-    ? apptQuery.eq('id', payload.appointment_id)
-    : apptQuery.eq('manage_token', payload.manage_token!);
-  const { data: appt, error: apptErr } = await apptQuery.maybeSingle();
+    .select('id, business_id, client_name, client_phone, appointment_date, start_time, manage_token, services(name)')
+    .eq('manage_token', payload.manage_token)
+    .maybeSingle();
   if (apptErr || !appt) {
     return new Response(JSON.stringify({ error: 'Appointment not found' }), { status: 404 });
   }

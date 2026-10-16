@@ -18,20 +18,20 @@
 - Turnos superpuestos frenados en la base (ADR-004); cron de recordatorios listo para nube y cerrado a `anon` (ADR-005).
 - 17 tests pgTAP; seed con turnos de demo; README con receta de activación.
 
-## Pendiente — propuesta de prioridad (esperando OK de Juanma)
+**Fase 1 — Reserva pública endurecida en la base (2026-10-16)** · seguridad, SECURED
+- Reglas de reserva en la base (estado, horarios, bloqueos, fin, buffer, datos del cliente), FKs por negocio, hora local por negocio.
+- `anon` ya no lee turnos; disponibilidad y personal por RPC; la página pública funciona con sesión abierta.
+- WhatsApp solo por token; recordatorio local andando (antes daba 401).
+- 37 tests pgTAP nuevos; revisión de seguridad en `phases/01-endurecer-reserva/01-SECURITY.md`; ADR-007.
 
-### Fase 1 — Endurecer la reserva pública en la base  ·  seguridad
-Hoy `anon` puede insertar un turno con cualquier `status` (ej. `completed`), fuera del horario del negocio, con `end_time` arbitrario, o con un servicio/empleado de otro negocio; reprogramar por token tampoco valida horario. La UI no lo hace, pero la API sí lo permite.
-- Trigger de validación: servicio y empleado del mismo negocio, `end_time = inicio + duración`, dentro de horario del negocio y del empleado, día no bloqueado, `status` forzado a `pending` para `anon`.
-- Lo mismo para `reschedule_appointment_by_token`.
-- Modelo de amenazas + `/gsd-secure-phase`.
+## Pendiente — orden aprobado por Juanma (2026-10-16)
 
 ### Fase 2 — Página pública que vende (theming + SEO por negocio)
 - Color de marca y portada por negocio; modo oscuro gris (hoy hay tokens `.dark` casi negros y sin selector).
 - SEO: `<title>`, descripción y Open Graph por negocio, datos estructurados `LocalBusiness`, sitemap de páginas públicas. Requiere prerender/SSR o meta dinámicas (decisión de arquitectura).
 
 ### Fase 3 — Seña para reservar  ·  plata
-- Variante sin pasarela primero (alinea con el alias actual): turno queda `pending` hasta que el negocio marca la seña como recibida; vencimiento automático.
+- **Aprobado: sin pasarela primero.** Variante sin pasarela (alinea con el alias actual): turno queda `pending` hasta que el negocio marca la seña como recibida; vencimiento automático.
 - Con pasarela (Mercado Pago) después, solo si Juanma lo decide: requiere cuenta y comisiones.
 
 ### Fase 4 — Reportes y comisiones por empleado  ·  plata
@@ -57,4 +57,5 @@ Hoy `anon` puede insertar un turno con cualquier `status` (ej. `completed`), fue
 - `tsconfig` con `strict: false`; casi sin tests de UI.
 - Bundle de 500+ kB: code-splitting del panel.
 - Restos del template: `src/App.css`, `public/placeholder.svg`, componentes shadcn sin uso.
-- Nombre de marca: ¿TurnoPro o TurnAR? (pendiente de Juanma).
+- Nombre de marca: queda TurnoPro por ahora (Juanma, 2026-10-16).
+- Rate limiting / captcha contra spam de reservas (AR-1): obligatorio antes de activar WhatsApp real.
