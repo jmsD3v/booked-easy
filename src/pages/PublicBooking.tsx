@@ -12,7 +12,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { format, addDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { errorMessage, isSlotTakenError } from '@/lib/utils';
+import { errorMessage, formatPrice, isSlotTakenError } from '@/lib/utils';
 
 type Staff = { id: string; name: string; avatar_url: string | null; is_active: boolean };
 type StaffSchedule = { staff_id: string; day_of_week: number; start_time: string; end_time: string; is_available: boolean };
@@ -399,7 +399,7 @@ const PublicBooking = () => {
                         <p className="text-sm text-muted-foreground">{service.duration_minutes} min</p>
                       </div>
                     </div>
-                    <span className="text-lg font-bold text-primary">${service.price}</span>
+                    <span className="text-lg font-bold text-primary">{formatPrice(service.price)}</span>
                   </CardContent>
                 </Card>
               ))}
@@ -514,7 +514,7 @@ const PublicBooking = () => {
               <CardContent className="space-y-4 p-6">
                 <div className="rounded-lg bg-accent p-4">
                   <p className="text-sm font-medium text-accent-foreground">Resumen del turno</p>
-                  <p className="font-semibold">{selectedService?.name} — ${selectedService?.price}</p>
+                  <p className="font-semibold">{selectedService?.name} — {selectedService ? formatPrice(selectedService.price) : null}</p>
                   <p className="text-sm text-muted-foreground">
                     {selectedDate && format(selectedDate, "EEEE d 'de' MMMM", { locale: es })} a las {selectedTime}
                   </p>
@@ -555,7 +555,7 @@ const PublicBooking = () => {
               <strong>{selectedTime}</strong> fue registrado exitosamente.
             </p>
             <p className="text-sm text-muted-foreground">
-              Recibirás una confirmación por WhatsApp si el negocio tiene habilitadas las notificaciones.
+              Te va a llegar una confirmación por WhatsApp si el negocio tiene activadas las notificaciones.
             </p>
 
             {(business.payment_alias || business.payment_qr_url) && (

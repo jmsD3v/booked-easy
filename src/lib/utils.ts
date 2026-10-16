@@ -23,3 +23,15 @@ export function isSlotTakenError(err: unknown): boolean {
   const { code } = err as { code: unknown };
   return code === "23P01" || code === "23505";
 }
+
+// Pesos argentinos: "$ 9.500" (espacio no separable, así el monto no se
+// parte en dos líneas). Centavos solo si el precio los tiene.
+export function formatPrice(amount: number): string {
+  const hasCents = !Number.isInteger(amount);
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: hasCents ? 2 : 0,
+    maximumFractionDigits: hasCents ? 2 : 0,
+  }).format(amount);
+}

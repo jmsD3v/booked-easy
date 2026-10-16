@@ -9,7 +9,7 @@ import { useBusiness, useServices } from '@/hooks/useBusiness';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { errorMessage } from '@/lib/utils';
+import { errorMessage, formatPrice } from '@/lib/utils';
 
 const ServicesPage = () => {
   const { data: business } = useBusiness();
@@ -127,7 +127,7 @@ const ServicesPage = () => {
                 <span className="rounded-full bg-accent px-3 py-1 font-medium text-accent-foreground">
                   {service.duration_minutes} min
                 </span>
-                <span className="font-bold text-primary">${service.price}</span>
+                <span className="font-bold text-primary">{formatPrice(service.price)}</span>
               </div>
             </CardContent>
           </Card>

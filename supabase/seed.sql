@@ -30,7 +30,9 @@ update public.businesses
 set slug = 'demo',
     description = 'Cortes clásicos y degradados. Turnos de lunes a sábado.',
     phone = '+54 9 11 5555-0123',
-    category = 'barberia'
+    category = 'barberia',
+    payment_alias = 'zorro.barberia.mp',
+    payment_note = 'Podés pagar por transferencia al alias o en el local.'
 where owner_id = '00000000-0000-0000-0000-000000000001';
 
 do $$

@@ -196,6 +196,7 @@ const ManageAppointment = () => {
         if (isSlotTakenError(error)) {
           toast.error('Ese horario se acaba de ocupar. Elegí otro.');
           setNewTime(null);
+          queryClient.invalidateQueries({ queryKey: ['manage-day-appointments', appt.business_id, newDateStr] });
           return;
         }
         throw error;

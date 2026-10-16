@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useBusiness } from '@/hooks/useBusiness';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { formatPrice } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -56,7 +57,7 @@ const StatsPage = () => {
         <Card className="shadow-card">
           <CardContent className="p-5">
             <p className="text-sm text-muted-foreground">Ingresos estimados</p>
-            <p className="text-3xl font-bold font-display text-primary">${totalIngresos}</p>
+            <p className="text-3xl font-bold font-display text-primary">{formatPrice(totalIngresos)}</p>
           </CardContent>
         </Card>
         <Card className="shadow-card">

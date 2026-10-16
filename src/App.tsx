@@ -40,6 +40,7 @@ const DashboardRoutes = () => (
         <Route path="stats" element={<StatsPage />} />
         <Route path="whatsapp" element={<WhatsAppPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </DashboardLayout>
   </ProtectedRoute>

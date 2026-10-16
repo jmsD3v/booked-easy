@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { errorMessage, isSlotTakenError } from "./utils";
+import { errorMessage, formatPrice, isSlotTakenError } from "./utils";
 
 describe("errorMessage", () => {
   it("usa el message de un Error", () => {
@@ -27,5 +27,17 @@ describe("isSlotTakenError", () => {
     expect(isSlotTakenError({ code: "23514", message: "anticipación" })).toBe(false);
     expect(isSlotTakenError(new Error("red"))).toBe(false);
     expect(isSlotTakenError(null)).toBe(false);
+  });
+});
+
+describe("formatPrice", () => {
+  it("formatea pesos con separador de miles argentino y sin decimales", () => {
+    expect(formatPrice(9500)).toBe("$ 9.500");
+    expect(formatPrice(125000)).toBe("$ 125.000");
+    expect(formatPrice(0)).toBe("$ 0");
+  });
+
+  it("muestra centavos solo si los hay", () => {
+    expect(formatPrice(1234.5)).toBe("$ 1.234,50");
   });
 });
