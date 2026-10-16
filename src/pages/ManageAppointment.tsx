@@ -8,7 +8,7 @@ import { Calendar, Clock, XCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { format, parseISO, addDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { errorMessage } from '@/lib/utils';
+import { errorMessage, isSlotTakenError } from '@/lib/utils';
 
 const statusLabel: Record<string, string> = {
   pending: 'Pendiente',
@@ -192,7 +192,14 @@ const ManageAppointment = () => {
         p_new_start: newTime + ':00',
         p_new_end: endTime + ':00',
       });
-      if (error) throw error;
+      if (error) {
+        if (isSlotTakenError(error)) {
+          toast.error('Ese horario se acaba de ocupar. Elegí otro.');
+          setNewTime(null);
+          return;
+        }
+        throw error;
+      }
       if (!ok) {
         toast.error('No se pudo reprogramar (el turno ya pasó, está cancelado, o ese horario ya se ocupó).');
         return;

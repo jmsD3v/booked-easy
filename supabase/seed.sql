@@ -70,3 +70,65 @@ begin
     (biz_id, 5, '09:00', '20:00', true),
     (biz_id, 6, '09:00', '14:00', true);
 end $$;
+
+-- Turnos de demo alrededor de hoy (6 días para atrás, 3 para adelante) para
+-- que la agenda, el inicio y las estadísticas del panel no arranquen vacíos.
+-- Las fechas son relativas a cuando se corre el seed (`pnpm db:reset`).
+-- El trigger de anticipación rechaza turnos en el pasado (correcto para
+-- reservas reales), así que se apaga solo mientras se cargan estos datos.
+alter table public.appointments disable trigger enforce_appointment_lead_time;
+
+do $$
+declare
+  biz_id uuid;
+  svc uuid[];
+  svc_minutes int[];
+  staff_ids uuid[];
+  clients text[] := array['Martín Gómez', 'Lucía Fernández', 'Diego Pereyra', 'Sofía Romero',
+                          'Julián Acosta', 'Valentina Sosa', 'Tomás Herrera', 'Camila Ríos'];
+  slots time[] := array['10:00', '11:00', '12:00', '15:00', '16:30'];
+  d int;
+  s int;
+  n int := 0;
+  day date;
+  svc_idx int;
+  appt_status public.appointment_status;
+begin
+  select id into biz_id from public.businesses where slug = 'demo';
+  select array_agg(id order by name), array_agg(duration_minutes order by name)
+    into svc, svc_minutes from public.services where business_id = biz_id;
+  select array_agg(id order by name) into staff_ids from public.staff where business_id = biz_id;
+
+  for d in -6..3 loop
+    day := current_date + d;
+    continue when extract(dow from day) = 0; -- domingo cerrado
+
+    for s in 1..array_length(slots, 1) loop
+      n := n + 1;
+      -- Variación determinística: no todos los horarios ocupados todos los días.
+      continue when (n % 4) = 0;
+      svc_idx := 1 + (n % array_length(svc, 1));
+
+      appt_status := case
+        when d < 0 and n % 9 = 0 then 'no_show'
+        when d < 0 and n % 11 = 0 then 'cancelled'
+        when d < 0 then 'completed'
+        when n % 3 = 0 then 'pending'
+        else 'confirmed'
+      end;
+
+      insert into public.appointments (
+        business_id, service_id, staff_id, client_name, client_phone,
+        appointment_date, start_time, end_time, status
+      ) values (
+        biz_id, svc[svc_idx], staff_ids[1 + (n % 2)],
+        clients[1 + (n % array_length(clients, 1))],
+        '+54 9 11 5555-' || lpad((1000 + n)::text, 4, '0'),
+        day, slots[s], slots[s] + make_interval(mins => svc_minutes[svc_idx]),
+        appt_status
+      );
+    end loop;
+  end loop;
+end $$;
+
+alter table public.appointments enable trigger enforce_appointment_lead_time;

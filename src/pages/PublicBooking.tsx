@@ -12,7 +12,7 @@ import type { Tables } from '@/integrations/supabase/types';
 import { format, addDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { errorMessage } from '@/lib/utils';
+import { errorMessage, isSlotTakenError } from '@/lib/utils';
 
 type Staff = { id: string; name: string; avatar_url: string | null; is_active: boolean };
 type StaffSchedule = { staff_id: string; day_of_week: number; start_time: string; end_time: string; is_available: boolean };
@@ -299,8 +299,9 @@ const PublicBooking = () => {
         manage_token: newManageToken,
       });
       if (error) {
-        // 23505 = unique_violation — the DB-level backstop against double-booking
-        if (error.code === '23505') {
+        // La base rechazó el turno por superponerse con otro del mismo empleado
+        // (ver migración 20261016000001): alguien reservó ese horario recién.
+        if (isSlotTakenError(error)) {
           toast.error('Justo se ocupó ese horario. Elegí otro.');
           setStep(3);
           refetchAppointments();

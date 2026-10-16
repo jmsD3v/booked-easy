@@ -15,3 +15,11 @@ export function errorMessage(err: unknown, fallback: string): string {
   }
   return fallback;
 }
+
+// La base rechaza un turno que se pisa con otro del mismo empleado:
+// 23P01 (restricción de exclusión por superposición) o 23505 (índice único).
+export function isSlotTakenError(err: unknown): boolean {
+  if (typeof err !== "object" || err === null || !("code" in err)) return false;
+  const { code } = err as { code: unknown };
+  return code === "23P01" || code === "23505";
+}
