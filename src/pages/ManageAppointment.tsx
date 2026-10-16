@@ -8,6 +8,7 @@ import { Calendar, Clock, XCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
 import { format, parseISO, addDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { errorMessage } from '@/lib/utils';
 
 const statusLabel: Record<string, string> = {
   pending: 'Pendiente',
@@ -109,8 +110,8 @@ const ManageAppointment = () => {
         toast.success('Turno cancelado');
         queryClient.invalidateQueries({ queryKey: ['manage-appointment', token] });
       }
-    } catch (err: any) {
-      toast.error(err.message || 'No se pudo cancelar el turno');
+    } catch (err) {
+      toast.error(errorMessage(err, 'No se pudo cancelar el turno'));
     } finally {
       setCancelling(false);
     }
@@ -119,27 +120,27 @@ const ManageAppointment = () => {
   const availableDays = business
     ? Array.from({ length: business.max_lead_days ?? 30 }, (_, i) => addDays(startOfDay(new Date()), i)).filter((date) => {
         const dow = date.getDay();
-        const hours = businessHours?.find((h: any) => h.day_of_week === dow);
+        const hours = businessHours?.find((h) => h.day_of_week === dow);
         if (hours && !hours.is_open) return false;
         const dateStr = format(date, 'yyyy-MM-dd');
-        return !scheduleBlocks?.some((b: any) => !b.staff_id && b.block_date === dateStr);
+        return !scheduleBlocks?.some((b) => !b.staff_id && b.block_date === dateStr);
       })
     : [];
 
   const generateSlots = () => {
     if (!newDate || !business || !appt) return [];
     const dow = newDate.getDay();
-    const hours = businessHours?.find((h: any) => h.day_of_week === dow);
+    const hours = businessHours?.find((h) => h.day_of_week === dow);
     const openTime = hours?.open_time?.slice(0, 5) || '09:00';
     const closeTime = hours?.close_time?.slice(0, 5) || '18:00';
     const duration = appt.duration_minutes;
     const bufferMinutes = business.buffer_minutes ?? 0;
     const minLeadHours = business.min_lead_hours ?? 0;
 
-    if (appt.staff_id && scheduleBlocks?.some((b: any) => b.staff_id === appt.staff_id && b.block_date === newDateStr)) {
+    if (appt.staff_id && scheduleBlocks?.some((b) => b.staff_id === appt.staff_id && b.block_date === newDateStr)) {
       return [];
     }
-    const sched = appt.staff_id ? staffSchedule?.find((s: any) => s.day_of_week === dow && s.is_available) : null;
+    const sched = appt.staff_id ? staffSchedule?.find((s) => s.day_of_week === dow && s.is_available) : null;
     if (appt.staff_id && !sched) return [];
 
     const openMin = hhmmToMinutes(openTime);
@@ -159,7 +160,7 @@ const ManageAppointment = () => {
     while (current + duration <= end) {
       if (current >= earliestToday) {
         const slotEnd = current + duration;
-        const conflict = appts.some((a: any) => {
+        const conflict = appts.some((a) => {
           // Staff-specific check when this appointment has one; otherwise
           // (legacy no-staff businesses) any appointment in the window blocks it.
           if (appt.staff_id && a.staff_id !== appt.staff_id) return false;
@@ -201,8 +202,8 @@ const ManageAppointment = () => {
       setNewDate(null);
       setNewTime(null);
       queryClient.invalidateQueries({ queryKey: ['manage-appointment', token] });
-    } catch (err: any) {
-      toast.error(err.message || 'No se pudo reprogramar');
+    } catch (err) {
+      toast.error(errorMessage(err, 'No se pudo reprogramar'));
     } finally {
       setSavingReschedule(false);
     }

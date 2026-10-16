@@ -8,9 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
 import { format, addDays, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { errorMessage } from '@/lib/utils';
 
 type Staff = { id: string; name: string; avatar_url: string | null; is_active: boolean };
 type StaffSchedule = { staff_id: string; day_of_week: number; start_time: string; end_time: string; is_available: boolean };
@@ -27,7 +29,7 @@ const PublicBooking = () => {
   const { slug } = useParams<{ slug: string }>();
   // 0=servicio, 1=profesional, 2=fecha, 3=hora, 4=datos, 5=confirmación
   const [step, setStep] = useState(0);
-  const [selectedService, setSelectedService] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<Tables<'services'> | null>(null);
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null); // ANY_STAFF or a staff.id
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -145,7 +147,7 @@ const PublicBooking = () => {
   const businessClosedDates = new Set((scheduleBlocks ?? []).filter((b) => !b.staff_id).map((b) => b.block_date));
   const availableDays = Array.from({ length: maxLeadDays }, (_, i) => addDays(startOfDay(new Date()), i)).filter((date) => {
     const dayOfWeek = date.getDay();
-    const hours = businessHours?.find((h: any) => h.day_of_week === dayOfWeek);
+    const hours = businessHours?.find((h) => h.day_of_week === dayOfWeek);
     if (hours && !hours.is_open) return false;
     return !businessClosedDates.has(format(date, 'yyyy-MM-dd'));
   });
@@ -183,7 +185,7 @@ const PublicBooking = () => {
     if (!selectedDate || !selectedService) return [];
     if (hasStaff && !selectedStaffId) return [];
     const dayOfWeek = selectedDate.getDay();
-    const hours = businessHours?.find((h: any) => h.day_of_week === dayOfWeek);
+    const hours = businessHours?.find((h) => h.day_of_week === dayOfWeek);
     const openTime = hours?.open_time || '09:00';
     const closeTime = hours?.close_time || '18:00';
 
@@ -298,7 +300,7 @@ const PublicBooking = () => {
       });
       if (error) {
         // 23505 = unique_violation — the DB-level backstop against double-booking
-        if ((error as any).code === '23505') {
+        if (error.code === '23505') {
           toast.error('Justo se ocupó ese horario. Elegí otro.');
           setStep(3);
           refetchAppointments();
@@ -315,8 +317,8 @@ const PublicBooking = () => {
         body: { manage_token: newManageToken, message_type: 'confirmation' },
       }).catch(() => {});
       setStep(5);
-    } catch (err: any) {
-      toast.error(err.message || 'Error al reservar');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Error al reservar'));
     } finally {
       setLoading(false);
     }
@@ -378,7 +380,7 @@ const PublicBooking = () => {
           <div className="space-y-4">
             <h2 className="text-xl font-bold font-display text-center">Elegí un servicio</h2>
             <div className="grid gap-3">
-              {services?.map((service: any) => (
+              {services?.map((service) => (
                 <Card
                   key={service.id}
                   className={`cursor-pointer shadow-card transition-all hover:shadow-elevated ${

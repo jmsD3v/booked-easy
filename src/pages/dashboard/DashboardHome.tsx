@@ -17,19 +17,19 @@ const DashboardHome = () => {
     },
     {
       title: 'Confirmados',
-      value: todayAppointments?.filter((a: any) => a.status === 'confirmed').length ?? 0,
+      value: todayAppointments?.filter((a) => a.status === 'confirmed').length ?? 0,
       icon: TrendingUp,
       color: 'bg-accent text-accent-foreground',
     },
     {
       title: 'Pendientes',
-      value: todayAppointments?.filter((a: any) => a.status === 'pending').length ?? 0,
+      value: todayAppointments?.filter((a) => a.status === 'pending').length ?? 0,
       icon: Clock,
       color: 'bg-accent text-accent-foreground',
     },
     {
       title: 'Ausencias hoy',
-      value: todayAppointments?.filter((a: any) => a.status === 'no_show').length ?? 0,
+      value: todayAppointments?.filter((a) => a.status === 'no_show').length ?? 0,
       icon: AlertTriangle,
       color: 'bg-accent text-accent-foreground',
     },
@@ -70,7 +70,7 @@ const DashboardHome = () => {
             <p className="py-8 text-center text-muted-foreground">No hay turnos para hoy</p>
           ) : (
             <div className="space-y-3">
-              {todayAppointments.map((apt: any) => (
+              {todayAppointments.map((apt) => (
                 <div key={apt.id} className="flex items-center justify-between rounded-lg border border-border p-4">
                   <div className="flex items-center gap-4">
                     <div className="text-center">

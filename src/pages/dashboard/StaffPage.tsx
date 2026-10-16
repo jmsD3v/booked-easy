@@ -9,6 +9,7 @@ import { useBusiness, useStaff } from '@/hooks/useBusiness';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { errorMessage } from '@/lib/utils';
 
 const StaffPage = () => {
   const { data: business } = useBusiness();
@@ -36,8 +37,8 @@ const StaffPage = () => {
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       setOpen(false);
       resetForm();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Ocurrió un error, probá de nuevo'));
     }
   };
 
@@ -73,7 +74,7 @@ const StaffPage = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {staff?.map((s: any) => (
+        {staff?.map((s) => (
           <Card key={s.id} className="shadow-card">
             <CardContent className="flex items-center gap-4 p-5">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent">

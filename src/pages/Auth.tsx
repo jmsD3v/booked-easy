@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/lib/auth';
 import { toast } from 'sonner';
+import { errorMessage } from '@/lib/utils';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -36,8 +37,8 @@ const Auth = () => {
         toast.success('¡Bienvenido!');
         navigate('/dashboard');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Error al procesar la solicitud');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Error al procesar la solicitud'));
     } finally {
       setLoading(false);
     }

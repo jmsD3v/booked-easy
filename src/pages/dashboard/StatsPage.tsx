@@ -25,9 +25,9 @@ const StatsPage = () => {
         days.push({
           day: format(date, 'EEE', { locale: es }),
           turnos: data?.length ?? 0,
-          ingresos: data?.filter((a: any) => a.status === 'completed' || a.status === 'confirmed')
-            .reduce((sum: number, a: any) => sum + (a.services?.price || 0), 0) ?? 0,
-          ausencias: data?.filter((a: any) => a.status === 'no_show').length ?? 0,
+          ingresos: data?.filter((a) => a.status === 'completed' || a.status === 'confirmed')
+            .reduce((sum: number, a) => sum + (a.services?.price || 0), 0) ?? 0,
+          ausencias: data?.filter((a) => a.status === 'no_show').length ?? 0,
         });
       }
       return days;

@@ -19,8 +19,14 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true, allowExportNames: ["useAuth"] }],
       "@typescript-eslint/no-unused-vars": "off",
     },
+  },
+  {
+    // Componentes generados por shadcn/ui: exportan variantes (cva) junto al
+    // componente a propósito. No se tocan a mano.
+    files: ["src/components/ui/**/*.tsx"],
+    rules: { "react-refresh/only-export-components": "off" },
   },
 );

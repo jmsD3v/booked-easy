@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { errorMessage } from '@/lib/utils';
 
 const ALL_STAFF = 'all';
 
@@ -97,7 +98,7 @@ const HoursPage = () => {
     if (savedHours?.length) {
       setHours((prev) =>
         prev.map((h) => {
-          const saved = savedHours.find((s: any) => s.day_of_week === h.day_of_week);
+          const saved = savedHours.find((s) => s.day_of_week === h.day_of_week);
           return saved ? { ...h, open_time: saved.open_time, close_time: saved.close_time, is_open: saved.is_open } : h;
         })
       );
@@ -109,7 +110,7 @@ const HoursPage = () => {
     try {
       // Upsert all hours
       for (const h of hours) {
-        const existing = savedHours?.find((s: any) => s.day_of_week === h.day_of_week);
+        const existing = savedHours?.find((s) => s.day_of_week === h.day_of_week);
         if (existing) {
           await supabase.from('business_hours').update(h).eq('id', existing.id);
         } else {
@@ -118,12 +119,12 @@ const HoursPage = () => {
       }
       toast.success('Horarios guardados');
       queryClient.invalidateQueries({ queryKey: ['business-hours'] });
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Ocurrió un error, probá de nuevo'));
     }
   };
 
-  const updateDay = (idx: number, field: string, value: any) => {
+  const updateDay = <K extends keyof DayHours>(idx: number, field: K, value: DayHours[K]) => {
     setHours((prev) => prev.map((h, i) => (i === idx ? { ...h, [field]: value } : h)));
   };
 
@@ -172,7 +173,7 @@ const HoursPage = () => {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_STAFF}>Todo el negocio</SelectItem>
-                {staff?.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                {staff?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Input placeholder="Motivo (opcional)" value={newBlock.reason} onChange={(e) => setNewBlock({ ...newBlock, reason: e.target.value })} />
@@ -181,7 +182,7 @@ const HoursPage = () => {
 
           <div className="space-y-2">
             {!blocks?.length && <p className="py-4 text-center text-sm text-muted-foreground">No hay días bloqueados.</p>}
-            {blocks?.map((b: any) => (
+            {blocks?.map((b) => (
               <div key={b.id} className="flex items-center justify-between gap-2 rounded-lg border border-border p-3">
                 <div>
                   <p className="font-medium">{format(new Date(b.block_date + 'T00:00:00'), "d 'de' MMMM, yyyy", { locale: es })}</p>

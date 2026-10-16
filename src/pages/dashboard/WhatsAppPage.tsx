@@ -13,6 +13,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { errorMessage } from '@/lib/utils';
 
 const WhatsAppPage = () => {
   const { data: business } = useBusiness();
@@ -42,13 +43,13 @@ const WhatsAppPage = () => {
 
   useEffect(() => {
     if (config) {
-      setForm({
+      setForm((prev) => ({
         phone_number_id: config.phone_number_id || '',
         access_token: config.access_token || '',
         is_active: config.is_active || false,
-        confirmation_message: config.confirmation_message || form.confirmation_message,
-        reminder_message: config.reminder_message || form.reminder_message,
-      });
+        confirmation_message: config.confirmation_message || prev.confirmation_message,
+        reminder_message: config.reminder_message || prev.reminder_message,
+      }));
     }
   }, [config]);
 
@@ -81,8 +82,8 @@ const WhatsAppPage = () => {
       }
       toast.success('Configuración de WhatsApp guardada');
       queryClient.invalidateQueries({ queryKey: ['whatsapp-config'] });
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Ocurrió un error, probá de nuevo'));
     }
   };
 
@@ -148,7 +149,7 @@ const WhatsAppPage = () => {
         <CardContent>
           {!messages?.length && <p className="py-6 text-center text-sm text-muted-foreground">Todavía no se registró ningún mensaje.</p>}
           <div className="space-y-3">
-            {messages?.map((m: any) => (
+            {messages?.map((m) => (
               <div key={m.id} className="flex flex-col gap-2 rounded-lg border border-border p-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

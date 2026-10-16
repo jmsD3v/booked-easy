@@ -6,6 +6,7 @@ import { useBusiness, useAppointments } from '@/hooks/useBusiness';
 import { format, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
+import type { Enums } from '@/integrations/supabase/types';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -16,8 +17,8 @@ const AgendaPage = () => {
   const { data: appointments } = useAppointments(business?.id, dateStr);
   const queryClient = useQueryClient();
 
-  const updateStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('appointments').update({ status: status as any }).eq('id', id);
+  const updateStatus = async (id: string, status: Enums<'appointment_status'>) => {
+    const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
     if (error) toast.error(error.message);
     else {
       toast.success('Estado actualizado');
@@ -53,7 +54,7 @@ const AgendaPage = () => {
             <p className="py-12 text-center text-muted-foreground">No hay turnos para este día</p>
           ) : (
             <div className="divide-y divide-border">
-              {appointments.map((apt: any) => (
+              {appointments.map((apt) => (
                 <div key={apt.id} className="flex items-center justify-between p-4">
                   <div className="flex items-center gap-4">
                     <div className="w-20 text-center">

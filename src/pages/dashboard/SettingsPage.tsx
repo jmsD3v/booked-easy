@@ -11,6 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Textarea } from '@/components/ui/textarea';
 import { Copy, ExternalLink, Upload, QrCode } from 'lucide-react';
+import { errorMessage } from '@/lib/utils';
 
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024; // 2MB
 
@@ -108,14 +109,14 @@ const SettingsPage = () => {
 
       const { error: updateError } = await supabase
         .from('businesses')
-        .update({ [column]: bustedUrl })
+        .update(column === 'logo_url' ? { logo_url: bustedUrl } : { payment_qr_url: bustedUrl })
         .eq('id', business.id);
       if (updateError) throw updateError;
 
       queryClient.invalidateQueries({ queryKey: ['business'] });
       toast.success(successMessage);
-    } catch (err: any) {
-      toast.error(err.message || 'Error al subir la imagen');
+    } catch (err) {
+      toast.error(errorMessage(err, 'Error al subir la imagen'));
     } finally {
       setUploading(false);
     }

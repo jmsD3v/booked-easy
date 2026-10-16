@@ -9,6 +9,7 @@ import { useBusiness, useServices } from '@/hooks/useBusiness';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { errorMessage } from '@/lib/utils';
 
 const ServicesPage = () => {
   const { data: business } = useBusiness();
@@ -40,8 +41,8 @@ const ServicesPage = () => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       setOpen(false);
       resetForm();
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err) {
+      toast.error(errorMessage(err, 'Ocurrió un error, probá de nuevo'));
     }
   };
 
@@ -55,7 +56,7 @@ const ServicesPage = () => {
     }
   };
 
-  const handleEdit = (service: any) => {
+  const handleEdit = (service) => {
     setForm({
       name: service.name,
       description: service.description || '',
@@ -107,7 +108,7 @@ const ServicesPage = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {services?.map((service: any) => (
+        {services?.map((service) => (
           <Card key={service.id} className="shadow-card">
             <CardContent className="p-5">
               <div className="mb-3 flex items-start justify-between">
